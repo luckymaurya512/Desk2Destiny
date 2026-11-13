@@ -1,10 +1,29 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion, Variants } from 'framer-motion';
-import { ArrowDown, Compass, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowDown, Compass, ShieldCheck, Sparkles, Users, Play, Pause, Film } from 'lucide-react';
 
 export const Hero: React.FC = () => {
   const containerRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
   const shouldReduceMotion = useReducedMotion();
+
+  // Ensure autoplay starts reliably across all browsers (muted is mandatory for autoplay)
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.defaultMuted = true;
+      videoRef.current.muted = true;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlaying(true))
+          .catch(() => {
+            // Browser autoplay restrictions handled gracefully
+            setIsPlaying(false);
+          });
+      }
+    }
+  }, []);
 
   // Scroll-linked cinematic parallax:
   // Background scales 1 -> 1.15 and shifts downward on scroll
@@ -23,6 +42,17 @@ export const Hero: React.FC = () => {
       lenis.scrollTo('#destinations');
     } else {
       document.querySelector('#destinations')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const toggleVideoPlayback = () => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play();
+      setIsPlaying(true);
     }
   };
 
@@ -56,7 +86,7 @@ export const Hero: React.FC = () => {
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-charcoal"
       aria-label="Welcome & Hero Introduction"
     >
-      {/* Background Image with Scroll-Linked Parallax & Scale (1 -> 1.15) */}
+      {/* Background Media with Scroll-Linked Parallax & Scale (1 -> 1.15) */}
       <motion.div
         className="absolute inset-0 z-0 origin-center"
         style={
@@ -68,13 +98,30 @@ export const Hero: React.FC = () => {
               }
         }
       >
+        {/* Pre-load Poster Image */}
         <img
           src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=85"
-          alt="Golden dawn hot-air balloons rising over misty mountain valleys in Cappadocia"
+          alt="Coastal expedition waters"
           loading="eager"
           fetchPriority="high"
-          className="w-full h-full object-cover object-center"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
+
+        {/* Local Fast-Streaming Background Video (Autoplay, Loop, Muted, PlaysInline) */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=85"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        >
+          <source src="/hero-video.mp4" type="video/mp4" />
+          <source src="https://vjs.zencdn.net/v/oceans.mp4" type="video/mp4" />
+        </video>
+
         {/* Multi-layered dark gradient overlay for optimal WCAG AAA text contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/65 to-charcoal/45" />
         <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/60" />
@@ -213,6 +260,21 @@ export const Hero: React.FC = () => {
           </div>
         </a>
       </motion.div>
+
+      {/* Ambient Video Player Control Badge (Bottom Right) */}
+      <div className="hidden sm:flex absolute bottom-6 right-6 z-20 items-center gap-2.5 px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/15 text-sand text-xs transition-colors">
+        <span className="w-2 h-2 rounded-full bg-terracotta animate-pulse" />
+        <Film className="w-3.5 h-3.5 text-sand/80" />
+        <span className="text-[11px] tracking-wide font-medium text-sand/90">Cinematic Expedition Reel</span>
+        <button
+          type="button"
+          onClick={toggleVideoPlayback}
+          className="p-1 rounded-full hover:bg-white/20 transition-colors text-white focus:outline-none focus:ring-1 focus:ring-terracotta"
+          aria-label={isPlaying ? 'Pause background video' : 'Play background video'}
+        >
+          {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+        </button>
+      </div>
     </section>
   );
 };
